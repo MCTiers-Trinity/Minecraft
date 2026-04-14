@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MCTiers_Trinity</title>
+<link rel="icon" type="image/png" href="https://mctiers.com/titles/combat_master.webp">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,sans-serif;background:#0b1220;color:#e5e7eb;overflow-x:hidden}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;background:#0e1728}
+.logo{font-weight:800;font-size:24px;background:linear-gradient(90deg,#4ade80,#fbbf24,#f97316);-webkit-background-clip:text;color:transparent}
+.search{background:#0b1220;border:1px solid rgba(255,255,255,0.1);padding:8px 14px;border-radius:20px;color:#9ca3af}
+.tabs{display:flex;gap:12px;padding:16px;flex-wrap:wrap}
+.tab{padding:10px 16px;border-radius:12px;background:#0e1728;border:1px solid rgba(255,255,255,0.05);cursor:pointer;color:#9ca3af;transition:.2s}
+.tab:hover{background:#1f2937;color:white}
+.tab.active{color:white;border-bottom:2px solid #facc15}
+.container{max-width:1200px;margin:auto;padding:20px}
+.row{display:flex;justify-content:space-between;align-items:center;background:#0e1728;margin:12px 0;padding:16px;border-radius:14px;opacity:0;transform:translateY(20px);animation:fadeInUp .4s forwards}
+.row.first{animation:fadeInUp .4s forwards, glowPulse 2s infinite ease-in-out; box-shadow:0 0 25px rgba(250,204,21,0.6), 0 0 50px rgba(250,204,21,0.35);} 
+@keyframes glowPulse{0%{box-shadow:0 0 20px rgba(250,204,21,0.5),0 0 40px rgba(250,204,21,0.3)}50%{box-shadow:0 0 35px rgba(250,204,21,0.9),0 0 70px rgba(250,204,21,0.5)}100%{box-shadow:0 0 20px rgba(250,204,21,0.5),0 0 40px rgba(250,204,21,0.3)}}
+.row:hover{transform:scale(1.02);box-shadow:0 0 25px rgba(56,189,248,0.3)}
+@keyframes fadeInUp{to{opacity:1;transform:translateY(0)}}
+.left{display:flex;align-items:center;gap:14px}
+.rank-box{width:70px;height:42px;display:flex;align-items:center;justify-content:center;font-weight:800;clip-path:polygon(0 0,85% 0,100% 100%,0% 100%)}
+.rank-1{background:linear-gradient(135deg,#fde047,#f59e0b)}
+.rank-2{background:#9ca3af}
+.rank-3{background:#f97316}
+.skin{width:46px;height:46px;border-radius:8px}
+.name{font-weight:700}
+.sub{font-size:13px;color:#9ca3af}
+.rank-title{font-size:12px;color:#facc15}
+.region{background:#1f2937;padding:4px 8px;border-radius:6px;font-size:12px;margin-left:6px}
+.right{display:flex;gap:10px}
+.icon{display:flex;flex-direction:column;align-items:center}
+.circle{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#111827}
+.badge{font-size:11px;margin-top:3px;padding:2px 6px;border-radius:6px;font-weight:600;color:black}
+
+/* tier colors */
+.t1{background:#facc15;color:black}
+.t2{background:#c0c0c0;color:black}
+.t3{background:#b87333;color:white}
+.t4,.t5{background:#6b7280;color:white}
+.ht{background:#facc15;color:black}
+.lt{background:#374151;color:#d1d5db}
+
+/* PROFILE PAGE */
+.profile{position:fixed;inset:0;background:#0b1220;display:none;flex-direction:column;z-index:10;animation:fadeIn .3s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.profile-header{display:flex;align-items:center;gap:20px;padding:30px;background:#0e1728}
+.profile img{width:90px;border-radius:12px}
+.back{cursor:pointer;padding:8px 14px;background:#1f2937;border-radius:10px}
+.profile-content{padding:20px}
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
+.card{background:#0e1728;padding:14px;border-radius:12px;text-align:center;transform:scale(.9);opacity:0;animation:pop .3s forwards}
+@keyframes pop{to{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<div class="topbar">
+ <div class="logo">MCTIERS</div>
+ <input class="search" placeholder="Search player...">
+</div>
+<div class="tabs">
+ <div class="tab active">🏆 Overall</div>
+ <div class="tab">⚔️ Sword</div>
+ <div class="tab">🧪 Pot</div>
+ <div class="tab">🔥 NethOP</div>
+ <div class="tab">💠 SMP</div>
+ <div class="tab">💎 Crystal</div>
+ <div class="tab">🔨 Mace</div>
+ <div class="tab">🪓 Axe</div>
+ <div class="tab">❤️ UHC</div>
+ <div class="tab">🛒 Cart</div>
+</div>
+<div class="container" id="content"></div>
+
+<div class="profile" id="profile">
+ <div class="profile-header">
+  <div class="back" onclick="closeProfile()">← Back</div>
+  <img id="profSkin">
+  <div>
+   <h2 id="profName"></h2>
+   <div id="profRank"></div>
+   <div id="profElo"></div>
+  </div>
+ </div>
+ <div class="profile-content">
+  <div class="mode-grid" id="modeGrid"></div>
+ </div>
+</div>
+
+<script>
+async function fetchPlayers(){	
+ const saved = localStorage.getItem("playersData");
+
+ if(saved){
+  return JSON.parse(saved);
+ }
+
+ return {
+
+  Benyameen:{
+    username:"DauntlessBlur",
+    region:"EU",
+    elo:312,
+    rank:"Combat Master",
+    modes:{
+      sword:"HT2",pot:"HT2",nethpot:"LT1",diasmp:"HT2",
+      crystal:"HT1",mace:"HT3",axe:"LT2",uhc:"LT3",cart:"LT4"
+    }
+  },
+
+  Jason:{
+    username:"JasonCSS",
+    region:"EU",
+    elo:298,
+    rank:"Combat Ace",
+    modes:{
+      sword:"LT3",pot:"LT3",nethpot:"HT3",diasmp:"HT2",
+      crystal:"LT5",mace:"HT1",axe:"LT3",uhc:"LT3",cart:"LT4"
+    }
+  },
+
+  Oliver:{
+    username:"Oliexsists_",
+    region:"EU",
+    elo:342,
+    rank:"Combat Master",
+    modes:{
+      sword:"LT1",pot:"HT1",nethpot:"HT1",diasmp:"HT1",
+      crystal:"HT4",mace:"HT1",axe:"HT1",uhc:"HT1",cart:"LT2"
+    }
+  },
+
+  AlexL:{
+    username:"Alex2Autistik",
+    region:"EU",
+    elo:337,
+    rank:"Combat Master",
+    modes:{
+      sword:"HT1",pot:"HT1",nethpot:"HT1",diasmp:"HT1",
+      crystal:"LT1",mace:"LT5",axe:"HT1",uhc:"HT1",cart:"HT4"
+    }
+  },
+
+  Sam:{
+    username:"number1manners",
+    region:"EU",
+    elo:248,
+    rank:"Combat cadet",
+    modes:{
+      sword:"HT4",pot:"HT4",nethpot:"HT4",diasmp:"HT4",
+      crystal:"LT5",mace:"HT4",axe:"HT4",uhc:"HT3",cart:"HT1"
+    }
+  },
+
+  Austin:{
+    username:"NE1LMAC",
+    region:"EU",
+    elo:292,
+    rank:"Combat Ace",
+    modes:{
+      sword:"HT3",pot:"HT2",nethpot:"HT2",diasmp:"HT2",
+      crystal:"LT4",mace:"LT5",axe:"HT2",uhc:"HT2",cart:"LT4"
+    }
+  },
+
+  Dhilan:{
+    username:"dhillyp_111",
+    region:"EU",
+    elo:272,
+    rank:"Combat cadet",
+    modes:{
+      sword:"LT2",pot:"LT2",nethpot:"LT2",diasmp:"LT2",
+      crystal:"HT2",mace:"HT3",axe:"LT2",uhc:"HT3",cart:"HT3"
+    }
+  },
+
+  Hugh:{
+    username:"Hugh",
+    region:"EU",
+    elo:286,
+    rank:"Combat Ace",
+    modes:{
+      sword:"HT3",pot:"HT3",nethpot:"HT3",diasmp:"HT3",
+      crystal:"LT4",mace:"LT4",axe:"LT2",uhc:"HT4",cart:"LT4"
+    }
+  }
+ }
+ }
+
+
+
+let players={}
+let currentTab="overall"
+const tabMap=["overall","sword","pot","nethpot","diasmp","crystal","mace","axe","uhc","cart"]
+
+function normalizeTier(t){
+ if(!t || typeof t !== "string") return null
+ return t.toUpperCase().trim()
+}
+
+function tierValue(t){
+ t = normalizeTier(t)
+ if(!t) return 999
+
+ const num = parseInt(t.slice(2))
+ if(!num) return 999
+
+ // HT1=1, LT1=2, HT2=3, LT2=4...
+ if(t.startsWith("HT")) return num*2-1
+ if(t.startsWith("LT")) return num*2
+
+ return 999
+}
+
+function sort(){
+ return Object.entries(players).sort((a,b)=>{
+  const A = a[1]
+  const B = b[1]
+
+  if(currentTab === "overall"){
+    return B.elo - A.elo
+  }
+
+  const tierA = tierValue(A.modes[currentTab])
+  const tierB = tierValue(B.modes[currentTab])
+
+  if(tierA !== tierB){
+    return tierA - tierB
+  }
+
+  return B.elo - A.elo
+ })
+}
+function getTierClass(t){
+ if(!t) return ""
+ let num=parseInt(t.slice(2))||0
+ if(num===1) return "t1"
+ if(num===2) return "t2"
+ if(num===3) return "t3"
+ if(num===4) return "t4"
+ if(num>=5) return "t5"
+ return ""
+}
+
+function getIcon(m){
+ switch(m){
+  case 'sword': return '⚔️'
+  case 'pot': return '🧪'
+  case 'nethpot': return '🔥'
+  case 'diasmp': return '💠'
+  case 'crystal': return '💎'
+  case 'mace': return '🔨'
+  case 'axe': return '🪓'
+  case 'uhc': return '❤️'
+  case 'cart': return '🛒'
+  default: return '❓'
+ }
+}
+
+function getSkin(u){return `https://mc-heads.net/avatar/${u}`}
+
+function show(){
+ let html=""
+
+ if(currentTab === "overall"){
+  sort().forEach(([name,p],i)=>{
+   let rc=i==0?'rank-1':i==1?'rank-2':i==2?'rank-3':''
+
+   html+=`<div class="row ${i===0?'first':''}" style="animation-delay:${i*0.05}s" onclick="openProfile('${name}')">
+    <div class="left">
+     <div class="rank-box ${rc}">${i+1}</div>
+     <img class="skin" src="${getSkin(p.username)}">
+     <div>
+      <div class="name">${name} <span class="region">${p.region}</span></div>
+      <div class="rank-title">${p.rank}</div>
+      <div class="sub">${p.elo} points</div>
+     </div>
+    </div>
+    <div class="right">
+    ${Object.entries(p.modes)
+      .map(([m,t])=>`<div class="icon"><div class="circle">${getIcon(m)}</div><div class="badge ${getTierClass(t)}">${t}</div></div>`).join('')}
+    </div>
+   </div>`
+  })
+
+ } else {
+
+  const grouped = {}
+
+  sort().forEach(([name,p])=>{
+   const tier = normalizeTier(p.modes[currentTab]) || "UNRANKED"
+   if(!grouped[tier]) grouped[tier] = []
+   grouped[tier].push([name,p])
+  })
+
+  Object.keys(grouped)
+   .sort((a,b)=>tierValue(a)-tierValue(b))
+   .forEach((tier,ti)=>{
+
+    // 🎨 MCTIERS BAR
+    html += `
+    <div class="tier-bar tier-${tier}" style="animation-delay:${ti*0.1}s">
+      ${tier}
+    </div>
+    `
+
+    grouped[tier].forEach(([name,p],i)=>{
+     html+=`<div class="row" style="animation-delay:${i*0.05}s" onclick="openProfile('${name}')">
+      <div class="left">
+       <div class="rank-box">${i+1}</div>
+       <img class="skin" src="${getSkin(p.username)}">
+       <div>
+        <div class="name">${name} <span class="region">${p.region}</span></div>
+        <div class="rank-title">${p.rank}</div>
+        <div class="sub">${p.elo} points</div>
+       </div>
+      </div>
+      <div class="right">
+       <div class="icon">
+        <div class="circle">${getIcon(currentTab)}</div>
+        <div class="badge ${getTierClass(p.modes[currentTab])}">
+         ${normalizeTier(p.modes[currentTab]) || "-"}
+        </div>
+       </div>
+      </div>
+     </div>`
+    })
+  })
+ }
+
+ document.getElementById("content").innerHTML=html
+}
+
+function openProfile(name){
+ let p=players[name]
+ document.getElementById("profile").style.display="flex"
+ document.getElementById("profSkin").src=getSkin(p.username)
+ document.getElementById("profName").innerText=name
+ document.getElementById("profRank").innerText=p.rank
+ document.getElementById("profElo").innerText=p.elo+" points"
+
+ let grid=""
+ Object.entries(p.modes).forEach(([m,t],i)=>{
+  grid+=`<div class="card" style="animation-delay:${i*0.05}s">
+   <div>${m.toUpperCase()}</div>
+   <div class="badge ${getTierClass(t)}">${t}</div>
+  </div>`
+ })
+ document.getElementById("modeGrid").innerHTML=grid
+}
+
+function closeProfile(){
+ document.getElementById("profile").style.display="none"
+}
+
+// tabs
+document.querySelectorAll(".tab").forEach((tab,i)=>{
+ tab.onclick=()=>{
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"))
+  tab.classList.add("active")
+  currentTab=tabMap[i]
+  show()
+ }
+})
+
+fetchPlayers().then(data=>{
+ players=data
+ show()
+})
+</script>
+<!-- ADMIN BUTTON (opens separate page) -->
+<button onclick="openAdminPage()" style="position:fixed;bottom:20px;left:20px;padding:8px 12px;border-radius:10px;background:#1f2937;color:white;z-index:20">Admin</button>
+
+<script>
+const ADMIN_PASSWORD = "1234";
+
+function openAdminPage(){
+ const pass = prompt("Enter admin password:");
+ if(pass !== ADMIN_PASSWORD){
+  alert("Wrong password");
+  return;
+ }
+
+ const win = window.open("", "AdminPanel", "width=500,height=600");
+
+ win.document.write(`
+  <html>
+  <head>
+   <title>Admin Panel</title>
+   <style>
+    b/* TIER BARS */
+.tier-bar{
+ margin-top:25px;
+ padding:10px 16px;
+ border-radius:10px;
+ font-weight:800;
+ letter-spacing:1px;
+ animation:fadeSlide .4s forwards;
+ opacity:0;
+ transform:translateY(10px);
+}
+
+/* COLORS like MCTiers */
+.tier-HT1{background:linear-gradient(90deg,#fde047,#facc15);color:black}
+.tier-LT1{background:#eab308;color:black}
+
+.tier-HT2{background:#c0c0c0;color:black}
+.tier-LT2{background:#9ca3af;color:black}
+
+.tier-HT3{background:#f97316;color:white}
+.tier-LT3{background:#ea580c;color:white}
+
+.tier-HT4{background:#6b7280;color:white}
+.tier-LT4{background:#4b5563;color:white}
+
+.tier-HT5{background:#374151;color:white}
+.tier-LT5{background:#1f2937;color:white}
+
+/* animation */
+@keyframes fadeSlide{
+ to{
+  opacity:1;
+  transform:translateY(0);
+ }
+}
+   </style>
+  </head>
+  <body>
+   <div class="box">
+    <h2>Upload Excel</h2>
+    <input type="file" id="fileInput"><br>
+    <button onclick="upload()">Upload</button>
+   </div>
+
+   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+   <script>
+   function upload(){
+    const file = document.getElementById('fileInput').files[0];
+    if(!file){ alert('Select a file'); return; }
+
+    const reader = new FileReader();
+    reader.onload = function(e){
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, {type:'array'});
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet);
+
+      let newPlayers = {};
+
+      json.forEach(row=>{
+        const name = row.name;
+        newPlayers[name] = {
+          username: row.username || name,
+          region: row.region || 'NA',
+          elo: Number(row.elo) || 0,
+          rank: row.rank || '',
+          modes: {
+            sword: row.sword,
+            pot: row.pot,
+            nethpot: row.nethpot,
+            diasmp: row.diasmp,
+            crystal: row.crystal,
+            mace: row.mace,
+            axe: row.axe,
+            uhc: row.uhc,
+            cart: row.cart
+          }
+        };
+      });
+
+      window.opener.players = newPlayers;
+      window.opener.show();
+      alert('Uploaded successfully!');
+    };
+    reader.readAsArrayBuffer(file);
+   }
+   <\/script>
+  </body>
+  </html>
+ `);
+}
+</script>
+</body>
+</html>
